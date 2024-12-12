@@ -1,3 +1,4 @@
+const axios = require('axios');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
@@ -9,6 +10,17 @@ const { setupFdk } = require("@gofynd/fdk-extension-javascript/express");
 const { SQLiteStorage } = require("@gofynd/fdk-extension-javascript/express/storage");
 const sqliteInstance = new sqlite3.Database('session_storage.db');
 const productRouter = express.Router();
+
+const {
+    ApplicationConfig,
+} = require("@gofynd/fdk-client-javascript");
+
+let applicationConfig = new ApplicationConfig({
+    applicationID: "6731cee2bac45d383cf8158e",
+    applicationToken: "GPXusV-M6",
+});
+
+applicationConfig.setLogLevel("debug");
 
 
 const fdkExtension = setupFdk({
@@ -34,15 +46,46 @@ const fdkExtension = setupFdk({
     access_mode: "online",
     webhook_config: {
         api_path: "/api/webhook-events",
-        notification_email: "useremail@example.com",
+        notification_email: "basra@picoxpress.com",
         event_map: {
             "company/product/delete": {
-                "handler": (eventName) => {  console.log(eventName)},
+                "handler": (eventName, body) => {
+                    console.log(JSON.stringify(body));
+                    console.log(eventName)
+                },
+                "version": '1'
+            },
+            "application/shipment/create": {
+                "handler": (eventName, body) => {
+                    console.log(JSON.stringify(body))
+                    createShipment(body)
+                },
                 "version": '1'
             }
         }
     },
 });
+
+const createShipment = async (body) => {
+    let applicationId = body.application_id;
+    let companyId = body.company_id;
+    let shipment = body.payload.shipment;
+    const url = "http://api.picoxpress.com/fynd/create/shipment";
+    const headers = {
+        "Content-Type": "application/json",
+        "application_id": applicationId,
+        "company_id": companyId
+    };
+    try {
+        const response = await axios.post(url, shipment, { headers });
+        console.log("Response Data:", response.data);
+        const partnerClient = fdkExtension.getPlatformClient('9189');
+        const trackingResponse = await partnerClient.order.updateShipmentTracking({body: response.data});
+        console.log("Tracking Response Data:", trackingResponse.data);
+    } catch (error) {
+        console.error("Error:", error.response?.data || error.message);
+    }
+}
 
 const STATIC_PATH = process.env.NODE_ENV === 'production'
     ? path.join(process.cwd(), 'frontend', 'public' , 'dist')
@@ -69,6 +112,7 @@ app.use("/", fdkExtension.fdkHandler);
 app.post('/api/webhook-events', async function(req, res) {
     try {
       console.log(`Webhook Event: ${req.body.event} received`)
+        console.log(`Webhook Event: ${JSON.stringify(req.body)} received`)
       await fdkExtension.webhookRegistry.processWebhook(req);
       return res.status(200).json({"success": true});
     } catch(err) {
