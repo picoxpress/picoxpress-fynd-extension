@@ -53,6 +53,22 @@ export const Home = () => {
       setPageLoading(false);
     }
   };
+
+  const createScheme = async () => {
+    try {
+      console.log('Create a new api call to create scheme');
+      const {data} = await axios.get(urlJoin(EXAMPLE_MAIN_URL, `/api/products/scheme`), {
+        headers: {
+          "x-company-id": company_id,
+        }
+      });
+      console.error(`Response : ${data}`)
+    } catch (e) {
+      console.error(`Error : ${e}`)
+    } finally {
+      // nothing to do
+    }
+  }
   
 
   const productProfileImage = (media) => {
@@ -95,6 +111,9 @@ export const Home = () => {
               in this company. Check your extension folder’s 'server.js'
               file to know how to call Platform API and start calling API you
               require.
+            </div>
+            <div>
+              <button onClick={createScheme}>Create Scheme</button>
             </div>
           </div>
 

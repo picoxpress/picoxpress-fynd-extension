@@ -43,7 +43,7 @@ const fdkExtension = setupFdk({
         }
     },
     storage: new SQLiteStorage(sqliteInstance,"exapmple-fynd-platform-extension"), // add your prefix
-    access_mode: "online",
+    access_mode: "offline",
     webhook_config: {
         api_path: "/api/webhook-events",
         notification_email: "basra@picoxpress.com",
@@ -146,6 +146,52 @@ productRouter.get('/application/:application_id', async function view(req, res, 
         next(err);
     }
 });
+
+productRouter.get('/scheme', async function view(req, res, next) {
+    try {
+        const partnerClient = await fdkExtension.getPartnerClient('6734619b8810c79f7768110d');
+        console.log(JSON.stringify(partnerClient.logistics))
+        const data = await partnerClient.logistics.createCourierPartnerScheme(
+            {
+                extension_id: "67569fc640aa96b453a2ae18",
+                scheme_id: "picoxpress_sdd",
+                name: "PicoXpress SDD",
+                weight: {"gte": 0, "lte": 25},
+                transport_type: "surface",
+                region: "intra-city",
+                delivery_type: ["same-day"],
+                payment_mode: [
+                    "prepaid",
+                    "cod"
+                ],
+                stage: "enabled",
+                feature: {
+                    doorstep_qc: false,
+                    qr: true,
+                    mps: true,
+                    ndr: true,
+                    dangerous_goods: false,
+                    fragile_goods: false,
+                    restricted_goods: false,
+                    cold_storage_goods: false,
+                    doorstep_exchange: false,
+                    doorstep_return: false,
+                    product_installation: false,
+                    openbox_delivery: false,
+                    multi_pick_single_drop: true,
+                    single_pick_multi_drop: true,
+                    multi_pick_multi_drop: true,
+                    ewaybill: false
+                }
+            }
+        );
+        console.log(JSON.stringify(data));
+        return res.json(data);
+    } catch (err) {
+        next(err);
+    }
+});
+
 
 // FDK extension api route which has auth middleware and FDK client instance attached to it.
 platformApiRoutes.use('/products', productRouter);
