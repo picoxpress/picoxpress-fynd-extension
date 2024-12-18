@@ -92,7 +92,7 @@ const STATIC_PATH = process.env.NODE_ENV === 'production'
     : path.join(process.cwd(), 'frontend');
     
 const app = express();
-const platformApiRoutes = fdkExtension.platformApiRoutes;
+const partnerApiRoutes = fdkExtension.partnerApiRoutes;
 
 // Middleware to parse cookies with a secret key
 app.use(cookieParser("ext.session"));
@@ -149,44 +149,54 @@ productRouter.get('/application/:application_id', async function view(req, res, 
 
 productRouter.get('/scheme', async function view(req, res, next) {
     try {
-        const partnerClient = await fdkExtension.getPartnerClient('6734619b8810c79f7768110d');
-        console.log(JSON.stringify(partnerClient.logistics))
-        const data = await partnerClient.logistics.createCourierPartnerScheme(
-            {
-                extension_id: "67569fc640aa96b453a2ae18",
-                scheme_id: "picoxpress_sdd",
-                name: "PicoXpress SDD",
-                weight: {"gte": 0, "lte": 25},
-                transport_type: "surface",
-                region: "intra-city",
-                delivery_type: ["same-day"],
-                payment_mode: [
-                    "prepaid",
-                    "cod"
-                ],
-                stage: "enabled",
-                feature: {
-                    doorstep_qc: false,
-                    qr: true,
-                    mps: true,
-                    ndr: true,
-                    dangerous_goods: false,
-                    fragile_goods: false,
-                    restricted_goods: false,
-                    cold_storage_goods: false,
-                    doorstep_exchange: false,
-                    doorstep_return: false,
-                    product_installation: false,
-                    openbox_delivery: false,
-                    multi_pick_single_drop: true,
-                    single_pick_multi_drop: true,
-                    multi_pick_multi_drop: true,
-                    ewaybill: false
+        //const partnerClient = fdkExtension.getPartnerClient('6734619b8810c79f7768110d');
+        const {
+            partnerClient
+        } = req;
+        try {
+            const data = await partnerClient.logistics.createCourierPartnerScheme({
+                    body:
+                        {
+                            extension_id: "67569fc640aa96b453a2ae18",
+                            scheme_id: "picoxpress_sdd",
+                            name: "PicoXpress SDD",
+                            weight: {"gte": 0, "lte": 25},
+                            transport_type: "surface",
+                            region: "intra-city",
+                            delivery_type: "same-day",
+                            payment_mode: [
+                                "PREPAID",
+                                "COD"
+                            ],
+                            stage: "enabled",
+                            feature: {
+                                doorstep_qc: false,
+                                qr: true,
+                                mps: true,
+                                ndr: true,
+                                dangerous_goods: false,
+                                fragile_goods: false,
+                                restricted_goods: false,
+                                cold_storage_goods: false,
+                                doorstep_exchange: false,
+                                doorstep_return: false,
+                                product_installation: false,
+                                openbox_delivery: false,
+                                multi_pick_single_drop: true,
+                                single_pick_multi_drop: true,
+                                multi_pick_multi_drop: true,
+                                ewaybill: false
+                            }
+                        }
                 }
-            }
-        );
-        console.log(JSON.stringify(data));
-        return res.json(data);
+            );
+            console.log(JSON.stringify(data));
+            return res.json(data);
+        } catch (e) {
+            console.log('Got error');
+            console.log(JSON.stringify(e));
+            return res.json({});
+        }
     } catch (err) {
         next(err);
     }
@@ -194,11 +204,13 @@ productRouter.get('/scheme', async function view(req, res, next) {
 
 
 // FDK extension api route which has auth middleware and FDK client instance attached to it.
-platformApiRoutes.use('/products', productRouter);
+//platformApiRoutes.use('/products', productRouter);
+
+partnerApiRoutes.use('/products', productRouter);
 
 // If you are adding routes outside of the /api path, 
 // remember to also add a proxy rule for them in /frontend/vite.config.js
-app.use('/api', platformApiRoutes);
+app.use('/api', partnerApiRoutes);
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
